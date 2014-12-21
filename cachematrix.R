@@ -9,21 +9,36 @@
 ##   https://class.coursera.org/rprog-016/human_grading/view/courses/972581/assessments/3/submissions
 
 ## Return a list object that encapsulates a given matrix and its calculated inverse.
-## `x_inv' is the memoized variable that caches the inverse
+## `x_mat' keeps a reference to the given matrix (for comparison purposes)
+## `x_inv' is the memoized variable that caches the inverse of the matrix
 ## `inverse' is an accessor function for the inverse of the given matrix (`x_inv')
-## `cache' is a function to set the value of `x_inv', and conveniently returns it
+## `cache' caches the given matrix along with its inverse, and conveniently returns the inverse
 makeCacheMatrix <- function(x = matrix()) {
+    x_mat <- x
     x_inv <- NULL
     inverse <- function() x_inv
-    cache <- function(inv) { x_inv <<- inv; x_inv }
-    list(matrix = x, inverse = inverse, cache = cache)
+    original <- function() x_mat
+    cache <- function(mat, inv) {
+        x_mat <<- mat
+        x_inv <<- inv
+        x_inv
+    }
+    list(matrix = x, inverse = inverse, cache = cache, original = original)
 }
 
-## Returns the inverse of `x$matrix', potentially retrieving it from cache
+## Returns the inverse of `x$matrix', potentially retrieving it from cache.
+## If the matrix has changed, recompute the inverse and update the cache.
 cacheSolve <- function(x, ...) {
-    if (!is.null(x$inverse())) {
-        # message("cache hit")
+    if (cacheIsValid(x)) {
+        ## message("cache hit")
         return(x$inverse())
     }
-    x$cache(solve(x$matrix, ...)) # n.b. this *returns* the inverse in addition to caching it
+    x$cache(x$matrix, solve(x$matrix, ...)) # n.b. this returns the inverse (in addition to caching it)
+}
+
+## Return true if the cached matrix inverse is valid, requirements being:
+## 1. the inverse has previously been computed
+## 2. the underlying matrix for which the inverse was computed has not changed
+cacheIsValid <- function(m) {
+    !is.null(m$inverse()) && m$matrix == m$original()
 }
